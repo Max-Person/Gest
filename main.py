@@ -33,17 +33,20 @@ def distance(a, b) -> float:
 
 def detectGesture(landmarks, unit = float) -> int:
   result = 0
-  if distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
-              landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_PIP]) < 0.21*unit and landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y < landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y and \
-     distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
-                   landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]) > 0.4 * unit:
-    result = result | RIGHT_CLICK
 
   if distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
-              landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_PIP]) < 0.25*unit and landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y > landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y and \
+              landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_PIP]) < 0.2*unit and landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y > landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y and \
      distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
-                   landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]) > 0.4 * unit:
+                   landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_TIP]) > 0.3 * unit:
     result = result | LEFT_CLICK
+  elif distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
+              landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_PIP]) < 0.2*unit and landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y < landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y and \
+     distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
+                   landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_TIP]) > 0.3 * unit:
+    result = result | RIGHT_CLICK
+  elif distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
+                   landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_TIP]) < 0.25 * unit:
+    result = result | SCROLL
 
     # landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y > landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y and \
   if landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y < landmarks.landmark[
@@ -51,14 +54,9 @@ def detectGesture(landmarks, unit = float) -> int:
             landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_TIP].y > landmarks.landmark[
         mp_hands.HandLandmark.RING_FINGER_MCP].y and \
             landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].y > landmarks.landmark[
-        mp_hands.HandLandmark.PINKY_MCP].y or \
-     distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
-                   landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]) < 0.3 * unit:
+        mp_hands.HandLandmark.PINKY_MCP].y:
     result = result | POINTER
 
-  if distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
-                   landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]) < 0.3 * unit:
-    result = result | SCROLL
   return result
 
     # For webcam input:
@@ -103,45 +101,44 @@ with mp_hands.Hands(
                                                                                           hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_MCP]) and distance(hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_MCP],
                                                                                                                                                                         hand_landmarks.landmark[mp_hands.HandLandmark.WRIST])> 1.25 * distance(hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_MCP], hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_MCP]):
           hand_unit = distance(hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_MCP], hand_landmarks.landmark[mp_hands.HandLandmark.WRIST])
-          gesture = detectGesture(hand_landmarks, hand_unit)
+
+      gesture = detectGesture(hand_landmarks, hand_unit)
+
+      #Check for pointer
+      dX = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x - previousX
+      dY = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y - previousY
+      if (gesture & POINTER) == POINTER and abs(hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x - previousX) > (1-rightMargin-leftMargin)/180 and abs(hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y - previousY) > (1-topMargin-bottomMargin)/180:
+            ag.moveTo((hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x-leftMargin)*(1/(1-leftMargin-rightMargin))*screensize[0], (hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y-topMargin)*(1/(1-topMargin-bottomMargin))*screensize[1])
+            previousX = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x
+            previousY = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
+
 
       #Check for left click
       if (gesture & LEFT_CLICK) == LEFT_CLICK and leftClicked == False:
         ag.mouseDown(button='left')
         leftClicked = True
-      else:
-        if (gesture & LEFT_CLICK) != LEFT_CLICK and leftClicked == True:
-            ag.mouseUp(button='left')
-            leftClicked = False
+      elif (gesture & LEFT_CLICK) != LEFT_CLICK and leftClicked == True:
+        ag.mouseUp(button='left')
+        leftClicked = False
 
       #Check for right click
       if (gesture & RIGHT_CLICK) == RIGHT_CLICK and rightClicked == False:
         ag.mouseDown(button='right')
         rightClicked = True
-      else:
-        if (gesture & RIGHT_CLICK) != RIGHT_CLICK and rightClicked == True:
-           ag.mouseUp(button='right')
-           rightClicked = False
+      elif (gesture & RIGHT_CLICK) != RIGHT_CLICK and rightClicked == True:
+        ag.mouseUp(button='right')
+        rightClicked = False
 
-      #Check for pointer
-      if (gesture & POINTER) == POINTER and hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x > leftMargin and hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x < 1-rightMargin \
-              and hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y > topMargin and hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y < 1-bottomMargin:
-        if abs(hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x - previousX) > (1-rightMargin-leftMargin)/180 and abs(hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y - previousY) > (1-topMargin-bottomMargin)/180:
-            ag.moveTo((hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x-leftMargin)*(1/(1-leftMargin-rightMargin))*screensize[0], (hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y-topMargin)*(1/(1-topMargin-bottomMargin))*screensize[1], 0.1, ag.easeOutQuad)
-            previousX = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x
-            previousY = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
-
+      #Check for scrolling
       if (gesture & SCROLL) == SCROLL:
-          #ag.scroll(10)
-          print(str((hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_PIP].y - hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y)/(1-topMargin-bottomMargin)*200 ))
-          ag.scroll(round((hand_landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_PIP].y - hand_landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_TIP].y)/(1-topMargin-bottomMargin)*400))
+          ag.scroll(round((hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_PIP].y - hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y)/(1-topMargin-bottomMargin)*400))
 
-    cv2.putText(image, str(gesture) + " " + str(hand_unit),
+    """cv2.putText(image, str(gesture) + " " + str(hand_unit),
                 bottomLeftCornerOfText,
                 font,
                 fontScale,
                 fontColor,
-                lineType)
+                lineType)"""
 
     cv2.imshow('MediaPipe Hands', image)
     if cv2.waitKey(5) & 0xFF == 27:
