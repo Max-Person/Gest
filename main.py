@@ -10,10 +10,10 @@ import ctypes
 user32 = ctypes.windll.user32
 screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 
-leftMargin = 0.2
-rightMargin = 0.2
-topMargin = 0.1
-bottomMargin = 0.6
+leftMargin = 0.3
+rightMargin = 0.3
+topMargin = 0.2
+bottomMargin = 0.5
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 bottomLeftCornerOfText = (0, 100)
@@ -24,6 +24,7 @@ lineType = 2
 LEFT_CLICK = 1
 RIGHT_CLICK = 2
 POINTER = 4
+SCROLL = 8
 
 def distance(a, b) -> float:
   _x = a.x - b.x
@@ -33,11 +34,15 @@ def distance(a, b) -> float:
 def detectGesture(landmarks, unit = float) -> int:
   result = 0
   if distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
-              landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_PIP]) < 0.21*unit and landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y < landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y:
+              landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_PIP]) < 0.21*unit and landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y < landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y and \
+     distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
+                   landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]) > 0.4 * unit:
     result = result | RIGHT_CLICK
 
   if distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
-              landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_PIP]) < 0.25*unit and landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y > landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y:
+              landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_PIP]) < 0.25*unit and landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y > landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y and \
+     distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
+                   landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]) > 0.4 * unit:
     result = result | LEFT_CLICK
 
     # landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y > landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y and \
@@ -46,8 +51,14 @@ def detectGesture(landmarks, unit = float) -> int:
             landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_TIP].y > landmarks.landmark[
         mp_hands.HandLandmark.RING_FINGER_MCP].y and \
             landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].y > landmarks.landmark[
-        mp_hands.HandLandmark.PINKY_MCP].y:
+        mp_hands.HandLandmark.PINKY_MCP].y or \
+     distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
+                   landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]) < 0.3 * unit:
     result = result | POINTER
+
+  if distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
+                   landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]) < 0.3 * unit:
+    result = result | SCROLL
   return result
 
     # For webcam input:
@@ -120,12 +131,17 @@ with mp_hands.Hands(
             previousX = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x
             previousY = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
 
-    """cv2.putText(image, str(gesture) + " " + str(hand_unit),
+      if (gesture & SCROLL) == SCROLL:
+          #ag.scroll(10)
+          print(str((hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_PIP].y - hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y)/(1-topMargin-bottomMargin)*200 ))
+          ag.scroll(round((hand_landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_PIP].y - hand_landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_TIP].y)/(1-topMargin-bottomMargin)*400))
+
+    cv2.putText(image, str(gesture) + " " + str(hand_unit),
                 bottomLeftCornerOfText,
                 font,
                 fontScale,
                 fontColor,
-                lineType)"""
+                lineType)
 
     cv2.imshow('MediaPipe Hands', image)
     if cv2.waitKey(5) & 0xFF == 27:
