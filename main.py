@@ -31,6 +31,7 @@ POINTER = 4
 SCROLL = 8
 PAUSE = 16
 KEYBOARD = 32
+MIDDLE_CLICK = 64
 
 
 def findProcessIdByName(processName):
@@ -97,15 +98,19 @@ def detectGesture(landmarks, unit=float) -> int:
     elif distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
                   landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_TIP]) < 0.25 * unit:
         result = result | SCROLL
+    elif distance(landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP],
+                  landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP]) < 0.25 * unit:
+        result = result | MIDDLE_CLICK
 
         # landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y > landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_MCP].y and \
     if landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y < landmarks.landmark[
         mp_hands.HandLandmark.INDEX_FINGER_PIP].y and \
             landmarks.landmark[mp_hands.HandLandmark.RING_FINGER_TIP].y > landmarks.landmark[
-        mp_hands.HandLandmark.RING_FINGER_MCP].y and \
-            landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].y > landmarks.landmark[
-        mp_hands.HandLandmark.PINKY_MCP].y:
+        mp_hands.HandLandmark.RING_FINGER_MCP].y:
         result = result | POINTER
+        """and \
+                    landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].y > landmarks.landmark[
+                mp_hands.HandLandmark.PINKY_MCP].y"""
 
     return result
 
@@ -118,8 +123,12 @@ with mp_hands.Hands(
     hand_unit = 0.0
     previousX = 0
     previousY = 0
-    leftClicked = False
-    rightClicked = False
+    leftPressed = False
+    leftClickCount = 0
+    rightPressed = False
+    rightClickCount = 0
+    middlePressed = False
+    middleClickCount = 0
     paused = False
     ignoreCount = 0
     keyboardIgnore = 0
@@ -184,7 +193,7 @@ with mp_hands.Hands(
                             os.kill(elem['pid'], 9)
                     else:
                         keyboardApp = sp.Popen("osk.exe", shell=True)
-                    keyboardIgnore = 20
+                    keyboardIgnore = 30
 
                 # Check for pointer
                 dX = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x - previousX
@@ -202,20 +211,52 @@ with mp_hands.Hands(
                     previousY = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
 
                 # Check for left click
-                if (gesture & LEFT_CLICK) == LEFT_CLICK and leftClicked == False:
-                    ag.mouseDown(button='left')
-                    leftClicked = True
-                elif (gesture & LEFT_CLICK) != LEFT_CLICK and leftClicked == True:
-                    ag.mouseUp(button='left')
-                    leftClicked = False
+                if (gesture & LEFT_CLICK) == LEFT_CLICK:
+                    leftClickCount += 1
+                    if leftClickCount > 3 and not leftPressed:
+                        ag.mouseDown(button='left')
+                        leftPressed = True
+                elif leftClickCount > 0:
+                    if leftClickCount > 3 and leftPressed:
+                        ag.mouseUp(button='left')
+                        leftPressed = False
+                    else:
+                        if hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].y < hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_MCP].y:
+                            ag.doubleClick(button='left')
+                        else:
+                            ag.leftClick()
+                    leftClickCount = 0
 
                 # Check for right click
-                if (gesture & RIGHT_CLICK) == RIGHT_CLICK and rightClicked == False:
-                    ag.mouseDown(button='right')
-                    rightClicked = True
-                elif (gesture & RIGHT_CLICK) != RIGHT_CLICK and rightClicked == True:
-                    ag.mouseUp(button='right')
-                    rightClicked = False
+                if (gesture & RIGHT_CLICK) == RIGHT_CLICK:
+                    rightClickCount += 1
+                    if rightClickCount > 3 and not rightPressed:
+                        ag.mouseDown(button='right')
+                        rightPressed = True
+                elif rightClickCount > 0:
+                    if rightClickCount > 3 and rightPressed:
+                        ag.mouseUp(button='right')
+                        rightPressed = False
+                    else:
+                        if hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_TIP].y < hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_MCP].y:
+                            ag.doubleClick(button='right')
+                        else:
+                            ag.rightClick()
+                    rightClickCount = 0
+
+                # Check for middle click
+                if (gesture & MIDDLE_CLICK) == MIDDLE_CLICK:
+                    middleClickCount += 1
+                    if middleClickCount > 3 and not middlePressed:
+                        ag.mouseDown(button='middle')
+                        middlePressed = True
+                elif middleClickCount > 0:
+                    if middleClickCount > 3 and middlePressed:
+                        ag.mouseUp(button='middle')
+                        middlePressed = False
+                    else:
+                        ag.middleClick()
+                    middleClickCount = 0
 
                 # Check for scrolling
                 if (gesture & SCROLL) == SCROLL:
