@@ -14,10 +14,10 @@ mp_hands = mp.solutions.hands
 
 screensize = ag.size()
 
-leftMargin = 0.3
-rightMargin = 0.3
-topMargin = 0.2
-bottomMargin = 0.5
+leftMargin = 0.2
+rightMargin = 0.2
+topMargin = 0.1
+bottomMargin = 0.6
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 bottomLeftCornerOfText = (0, 100)
@@ -121,8 +121,14 @@ with mp_hands.Hands(
         min_detection_confidence=0.8,
         min_tracking_confidence=0.8) as hands:
     hand_unit = 0.0
-    previousX = 0
-    previousY = 0
+    previousINDEXX = 0
+    previousINDEXY = 0
+    previousINDEXMCPX = 0
+    previousINDEXMCPY = 0
+    previousPINKYMCPX = 0
+    previousPINKYMCPY = 0
+    previousWRISTX = 0
+    previousWRISTY = 0
     leftPressed = False
     leftClickCount = 0
     rightPressed = False
@@ -196,19 +202,35 @@ with mp_hands.Hands(
                     keyboardIgnore = 30
 
                 # Check for pointer
-                dX = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x - previousX
-                dY = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y - previousY
                 if (gesture & POINTER) == POINTER and abs(
-                        hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x - previousX) > (
-                        1 - rightMargin - leftMargin) / 180 and abs(
-                        hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y - previousY) > (
-                        1 - topMargin - bottomMargin) / 180:
+                        hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x - previousINDEXX) > (
+                        1 - rightMargin - leftMargin) / 150 and abs(
+                        hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y - previousINDEXY) > (
+                        1 - topMargin - bottomMargin) / 150 and abs(
+                        hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_MCP].x - previousINDEXMCPX) > (
+                        1 - rightMargin - leftMargin) / 150 and abs(
+                        hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_MCP].y - previousINDEXMCPY) > (
+                        1 - topMargin - bottomMargin) / 150 and abs(
+                        hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_MCP].x - previousPINKYMCPX) > (
+                        1 - rightMargin - leftMargin) / 150 and abs(
+                        hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_MCP].y - previousPINKYMCPY) > (
+                        1 - topMargin - bottomMargin) / 150 and abs(
+                        hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].x - previousWRISTX) > (
+                        1 - rightMargin - leftMargin) / 150 and abs(
+                        hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].y - previousWRISTY) > (
+                        1 - topMargin - bottomMargin) / 150:
                     ag.moveTo((hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x - leftMargin) * (
                                 1 / (1 - leftMargin - rightMargin)) * screensize[0],
                               (hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y - topMargin) * (
                                           1 / (1 - topMargin - bottomMargin)) * screensize[1])
-                    previousX = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x
-                    previousY = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
+                    previousINDEXX = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x
+                    previousINDEXY = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
+                    previousINDEXMCPX = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_MCP].x
+                    previousINDEXMCPY = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_MCP].y
+                    previousPINKYMCPX = hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_MCP].x
+                    previousPINKYMCPY = hand_landmarks.landmark[mp_hands.HandLandmark.PINKY_MCP].y
+                    previousWRISTX = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].x
+                    previousWRISTY = hand_landmarks.landmark[mp_hands.HandLandmark.WRIST].y
 
                 # Check for left click
                 if (gesture & LEFT_CLICK) == LEFT_CLICK:
