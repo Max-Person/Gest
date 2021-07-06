@@ -197,12 +197,12 @@ with mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.8, min_tracking_
 
                         if len(list_of_process_objects) > 0:
                             for elem in list_of_process_objects:
-                                os.kill(elem['pid'], 9)
+                                try:
+                                    os.kill(elem['pid'], 9)
+                                except:
+                                    print("Can't kill osk.exe: access denied")
                         else:
-                            try:
-                                keyboardApp = sp.Popen("osk.exe", shell=True)
-                            except():
-                                print("Can't kill osk.exe: ")
+                            keyboardApp = sp.Popen("osk.exe", shell=True)
                         keyboard_ignore_frames_count = 30
 
                     # Check for pointer
